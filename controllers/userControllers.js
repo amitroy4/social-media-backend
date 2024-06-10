@@ -5,11 +5,12 @@ const {
 } = require("../helpers/validation");
 const Users = require("../models/userModel");
 const bcrypt = require("bcrypt");
+const { jwToken } = require("../helpers/token");
+const { sendverifiedEmail } = require("../helpers/mailer");
 
 exports.newUser = async (req, res) => {
   try {
-    const { fName, lName, username, email, password, bMonth, bDay, bYear } =
-      req.body;
+    const { fName, lName, email, password, bMonth, bDay, bYear } = req.body;
 
     if (!validateEmail(email)) {
       return res.status(400).json({
@@ -60,6 +61,10 @@ exports.newUser = async (req, res) => {
       bYear,
     }).save();
 
+    const emailToken = jwToken({ id: user._id.toString() }, "30m");
+
+    const url = `${process.env.BASE_URL}/activate/${emailToken}`;
+    sendverifiedEmail(user.email, user.fName, url);
     res.send(user);
   } catch (error) {
     res.status(404).json({
